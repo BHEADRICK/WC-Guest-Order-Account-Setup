@@ -115,6 +115,14 @@ final class WC_Guest_Order_Account_Setup {
 	protected static $single_instance = null;
 
 	/**
+	 * Instance of WCGOAS_Order_account_check
+	 *
+	 * @sinceundefined
+	 * @var WCGOAS_Order_account_check
+	 */
+	protected $order_account_check;
+
+	/**
 	 * Creates or returns an instance of this class.
 	 *
 	 * @since   0.0.0
@@ -145,8 +153,8 @@ final class WC_Guest_Order_Account_Setup {
 	 * @since  0.0.0
 	 */
 	public function plugin_classes() {
-		// $this->plugin_class = new WCGOAS_Plugin_Class( $this );
 
+		$this->order_account_check = new WCGOAS_Order_account_check( $this );
 	} // END OF PLUGIN CLASSES FUNCTION
 
 	/**
@@ -256,29 +264,32 @@ final class WC_Guest_Order_Account_Setup {
 
 	}
 	public function save_data($order_id, $posted){
+		$email = $posted['billing_email'];
+		$user_id = $this->find_user($email, $posted);
 
+	    if(!get_post_meta($order_id, '_customer_user', true) || get_post_meta($order_id, '_customer_user', true) !== $user_id){
 
-	    if(!get_post_meta($order_id, '_customer_user', true)){
-		    $email = $posted['billing_email'];
-		    $user_id = $this->find_user($email);
 		    update_post_meta($order_id, '_customer_user', $user_id);
-
-		    foreach($posted as $key=>$val){
-		        if(strpos($key, 'billing')!==false || strpos($key, 'shippint')!== false){
-		            update_user_meta($user_id, $key, $val);
-                }
-            }
 
         }
 
     }
 
-    private function find_user($email){
+    public function find_user($email, $posted = null){
 
 	    $user = get_user_by('email', $email);
 
 	    if(!$user){
-	        return $this->create_user($email);
+		    $user_id = $this->create_user($email);
+		    if($posted !== null){
+			    foreach($posted as $key=>$val){
+				    if(strpos($key, 'billing')!==false || strpos($key, 'shipping')!== false){
+					    update_user_meta($user_id, $key, $val);
+				    }
+            }
+
+            }
+            return $user_id;
         }else{
 	        return $user->ID;
         }
@@ -448,6 +459,7 @@ final class WC_Guest_Order_Account_Setup {
 			case 'basename':
 			case 'url':
 			case 'path':
+			case 'order_account_check':
 				return $this->$field;
 			default:
 				throw new Exception( 'Invalid ' . __CLASS__ . ' property: ' . $field );
