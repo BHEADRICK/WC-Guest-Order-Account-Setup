@@ -86,8 +86,9 @@ class WCGOAS_Order_account_check {
 
 				$user_id = $this->plugin->find_user($email);
 
-				if(!$customer_id || $user_id !==$customer_id){
-					error_log('updating order id: ' . $order->ID);
+				if(!$customer_id || (int) $user_id !==(int)$customer_id){
+
+					error_log("updating order: " .$order->ID);
 					update_post_meta($order->ID, '_customer_user', $user_id);
 				}
 			}
