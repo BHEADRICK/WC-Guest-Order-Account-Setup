@@ -32,4 +32,4 @@ function _manually_load_wc_guest_order_account_setup_plugin() {
 tests_add_filter( 'muplugins_loaded', '_manually_load_wc_guest_order_account_setup_plugin' );
 
 // Include the main tests bootstrapper.
-require $_tests_dir . '/includes/bootstrap.php';
+require_once $_tests_dir . '/includes/bootstrap.php';
