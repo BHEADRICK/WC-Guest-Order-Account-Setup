@@ -122,6 +122,7 @@ final class WC_Guest_Order_Account_Setup {
 	 */
 	protected $order_account_check;
 
+	protected $email_host;
 	/**
 	 * Creates or returns an instance of this class.
 	 *
@@ -171,8 +172,7 @@ final class WC_Guest_Order_Account_Setup {
 		add_action('woocommerce_checkout_update_order_meta', array($this, 'save_data'), 100, 2);
 
         //Runs on User Registration
-		add_action( 'user_register',[$this, 'initial_match_past_orders'], 10, 1 );
-		add_action('wp_login', [$this,'returning_match_past_orders'], 10, 2);
+
 	}
 	public function initial_match_past_orders( $user_id ) {
 
@@ -266,7 +266,24 @@ final class WC_Guest_Order_Account_Setup {
 	public function save_data($order_id, $posted){
 		$email = $posted['billing_email'];
 		$user_id = $this->find_user($email, $posted);
+		if(strpos($email, '@' . $this->email_host)){
 
+
+			if($user_id){
+				WC()->session->delete_session($user_id);
+
+				$usermeta = get_user_meta($user_id);
+
+				foreach($usermeta as $key=>$val){
+					if(strpos($key, 'billing')!==false || strpos($key, 'shipping')!== false){
+						update_user_meta($user_id, $key, '');
+					}
+
+				}
+
+			}
+			return;
+		}
 	    if(!get_post_meta($order_id, '_customer_user', true) || get_post_meta($order_id, '_customer_user', true) !== $user_id){
 
 		    update_post_meta($order_id, '_customer_user', $user_id);
@@ -350,6 +367,22 @@ final class WC_Guest_Order_Account_Setup {
 	 * @since  0.0.0
 	 */
 	public function init() {
+
+
+	    if(defined('WP_LIVE_DOMAIN')){
+	        $url = WP_LIVE_DOMAIN;
+        }else{
+		    $url = get_site_url();
+        }
+		$parsed = parse_url($url);
+		$host =  $parsed['host'];
+
+		$host = implode('.',array_slice( explode('.', $host), -2));
+
+		error_log($host);
+
+
+	    $this->email_host = $host;
 
 		// Bail early if requirements aren't met.
 		if ( ! $this->check_requirements() ) {
